@@ -37,9 +37,6 @@ from optparse import OptionParser
 
 import time, struct, sys
 
-# from current dir
-from uhd_interface import uhd_transmitter
-
 class my_top_block(gr.top_block):
     def __init__(self, options):
         gr.top_block.__init__(self)
