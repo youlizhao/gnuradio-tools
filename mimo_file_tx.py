@@ -186,7 +186,7 @@ def main():
     # start flow graph
     tb.start()
 
-    if (options.from_file_a is None) and (options.from_file_b is None):
+    if (options.from_file_a is not None) and (options.from_file_b is not None):
        # send frame        
        counter = 0
        while counter < options.num:
