@@ -26,15 +26,16 @@ function v = write_float_binary (data, filename)
   %%  open filename and write data to it as 32 bit floats
   %%
 
-  if ((m = nargchk (2,2,nargin)))
+  m = nargchk (1,2,nargin);
+  if (m)
     usage (m);
-  endif;
+  end
 
-  f = fopen (filename, "wb");
+  f = fopen (filename, 'wb');
   if (f < 0)
     v = 0;
   else
-    v = fwrite (f, data, "float");
+    v = fwrite (f, data, 'float');
     fclose (f);
-  endif;
+  end;
 end

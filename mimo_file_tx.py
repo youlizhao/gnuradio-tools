@@ -24,7 +24,7 @@
 # @author: lzyou@inc.cuhk.edu.hk
 # @date:   Mar. 31, 2012
 # @note:
-#   (1) The length of two files should be equal;
+#   (1) The length of two files should be equivalent;
 # TODO:
 #   (1) write mimo_msgq_tx.py using msgq: need to solve the mimo timestamp problem
 #
@@ -63,10 +63,13 @@ class my_top_block(gr.top_block):
             if options.external:
                 self.uhd_usrp_sink_0.set_clock_source("external", 0)
                 self.uhd_usrp_sink_0.set_clock_source("external", 1)
+                # we use mimo for time synchronization
+                self.uhd_usrp_sink_0.set_time_source("internal", 0)
                 self.uhd_usrp_sink_0.set_time_source("mimo", 1)
             else:
 	        self.uhd_usrp_sink_0.set_clock_source("internal", 0)
 	        self.uhd_usrp_sink_0.set_clock_source("mimo", 1)
+                self.uhd_usrp_sink_0.set_time_source("internal", 0)
 	        self.uhd_usrp_sink_0.set_time_source("mimo", 1)
 	    self.uhd_usrp_sink_0.set_samp_rate(self._bandwidth)
 	    self.uhd_usrp_sink_0.set_center_freq(self._tx_freq, 0)
