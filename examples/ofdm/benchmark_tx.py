@@ -20,11 +20,6 @@
 # Boston, MA 02110-1301, USA.
 # 
 
-#
-# @author: lzyou@inc.cuhk.edu.hk
-# @date:   Oct. 21, 2012
-#
-
 from gnuradio import gr
 from gnuradio import eng_notation
 from gnuradio.eng_option import eng_option
@@ -34,6 +29,7 @@ import time, struct, sys
 from gnuradio import digital
 
 # from current dir
+from transmit_path import transmit_path
 from uhd_interface import uhd_transmitter
 
 class my_top_block(gr.top_block):
@@ -53,9 +49,9 @@ class my_top_block(gr.top_block):
 
         # do this after for any adjustments to the options that may
         # occur in the sinks (specifically the UHD sink)
-        self.txpath = gr.message_source(gr.sizeof_gr_complex, 3)
-        self.amp = gr.multiply_const_cc(options.amp)
-        self.connect(self.txpath, self.amp, self.sink)
+        self.txpath = transmit_path(options)
+
+        self.connect(self.txpath, self.sink)
         
 # /////////////////////////////////////////////////////////////////////////////
 #                                   main
@@ -63,36 +59,24 @@ class my_top_block(gr.top_block):
 
 def main():
 
-    def send_pkt(payload='', timestamp=None, eof=False):
-        if eof:
-            msg = gr.message(1)
-        else:
-            msg = gr.message_from_string(payload)
-            if timestamp is not None:
-                secs = long(timestamp)
-                frac_secs = timestamp - long(timestamp)
-                msg.set_timestamp(secs, frac_secs)
-        return tb.txpath.msgq().insert_tail(msg)
+    def send_pkt(payload='', eof=False):
+        return tb.txpath.send_pkt(payload, eof)
 
     parser = OptionParser(option_class=eng_option, conflict_handler="resolve")
-    parser.add_option("-n", "--num", type="eng_float", default=1,
-                      help="set number of packets [default=%default]")
-    parser.add_option("-g", "--gap", type="eng_float", default=0.005,
-                      help="set number of packets [default=%default]")
-    parser.add_option("","--data-file", default=None,
-                      help="use complex input file for transmission")
+    expert_grp = parser.add_option_group("Expert")
+    parser.add_option("-s", "--size", type="eng_float", default=400,
+                      help="set packet size [default=%default]")
+    parser.add_option("-M", "--megabytes", type="eng_float", default=1.0,
+                      help="set megabytes to transmit [default=%default]")
+    parser.add_option("","--discontinuous", action="store_true", default=False,
+                      help="enable discontinuous mode")
+    parser.add_option("","--from-file", default=None,
+                      help="use intput file for packet contents")
     parser.add_option("","--to-file", default=None,
                       help="Output file for modulated samples")
-    parser.add_option("-W", "--bandwidth", type="eng_float",
-                      default=4e6,
-                      help="set symbol bandwidth [default=%default]")
-    parser.add_option("", "--amp", type="eng_float", default=0.1, 
-                      help="set gain factor for complex baseband floats [default=%default]")
-    parser.add_option("", "--time", action="store_true", default=False,
-                      help="set timed tx mode")
 
-    #transmit_path.add_options(parser, expert_grp)
-    #digital.ofdm_mod.add_options(parser, expert_grp)
+    transmit_path.add_options(parser, expert_grp)
+    digital.ofdm_mod.add_options(parser, expert_grp)
     uhd_transmitter.add_options(parser)
 
     (options, args) = parser.parse_args ()
@@ -106,40 +90,29 @@ def main():
 
     tb.start()                       # start flow graph
     
-    ###########################################################################
-    if options.data_file is None:
-        sys.stderr.write("You must specify data file\n")
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+    # generate and send packets
+    nbytes = int(1e6 * options.megabytes)
+    n = 0
+    pktno = 0
+    pkt_size = int(options.size)
 
-    MAX_READ_BYTES = 1000000000
-    file_object = open(options.data_file)
-    data = file_object.read(MAX_READ_BYTES)
-    print "Length of payload = ", len(data), " | MAX_READ = ", MAX_READ_BYTES
-    file_object.close()
-
-    secs, frac = tb.sink.get_usrp_time()
-    print "USRP Time: ", secs
-    cnt = 0
-    GAP = options.gap
-    startTime = secs+0.1
-    while cnt < options.num:
-        if options.time:
-            send_pkt(data, startTime+cnt*GAP, eof=False)
+    while n < nbytes:
+        if options.from_file is None:
+            data = (pkt_size - 2) * chr(pktno & 0xff) 
         else:
-            send_pkt(data, eof=False)
-            if (options.gap > 0.0):
-                sys.stdout.flush()
-                time.sleep(options.gap)
+            data = source_file.read(pkt_size - 2)
+            if data == '':
+                break;
 
-        #print "Send pkt no.", cnt
-        cnt = cnt + 1
-
+        payload = struct.pack('!H', pktno & 0xffff) + data
+        send_pkt(payload)
+        n += len(payload)
+        sys.stderr.write('.')
+        if options.discontinuous and pktno % 5 == 4:
+            time.sleep(1)
+        pktno += 1
+        
     send_pkt(eof=True)
-    print "End of Tx | cnt = ", cnt
-    time.sleep(1)
-    ###########################################################################
-    
     tb.wait()                       # wait for it to finish
 
 if __name__ == '__main__':
