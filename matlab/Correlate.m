@@ -1,5 +1,5 @@
 %% INPUT: a sequence of rx data
-%% Type: 1 short, 2 long, 3 cp+long, 0 self-defined seq
+%% Type: 1 short, 2 long, 3 cp+long, 4 rawofdm, 0 self-defined seq
 function [] = Correlate(rxdata, type, seq)
   
   % 11a style
@@ -22,7 +22,7 @@ function [] = Correlate(rxdata, type, seq)
    0.0023 - 0.1324i
    ];
 
-cp = [
+  cp = [
    -0.1562          ;
    0.0123 - 0.0976i;
    0.0917 - 0.1059i;
@@ -124,12 +124,49 @@ cp = [
   -0.0051 + 0.1203i
   ];
 
+  rawofdm = [
+   1.2984 - 0.8548j;
+  -1.0196 + 0.3308j;
+  -0.1185 + 0.3173j; 
+   0.5303 + 0.8118j;
+  -0.1019 + 0.7091j;
+   0.2147 - 0.4824j;
+  -0.6892 + 0.3757j;
+   0.4383 + 0.0783j;
+   0.4786 - 1.1558j;
+  -0.1643 - 0.4001j;
+   0.3664 + 0.6463j;
+  -0.3522 + 0.4780j;
+   0.2358 + 0.0465j;
+   0.4488 + 0.5154j;
+   0.0414 + 1.0010j;
+   0.1826 + 1.5399j;
+  -0.1926 + 0.9062j;
+  -0.1387 - 0.8931j;
+  -0.1599 - 0.6938j;
+   0.1183 - 0.2761j;
+   0.0605 - 0.3776j;
+   0.3285 + 0.2880j;
+   0.5988 - 0.1381j;
+  -0.5900 - 1.3076j;
+  -0.7603 - 1.0833j;
+  -0.7019 + 0.0782j;
+  -0.4639 - 0.0143j;
+  -0.3260 - 0.3310j;
+   0.5487 - 0.2704j;
+   1.6965 - 0.3181j;
+  -1.1422 + 0.5860j;
+  -0.6653 - 0.1119j
+  ];
+
   if type == 1
       signal = short;
   elseif type == 2
       signal = long;
   elseif type == 3
       signal = [cp; long];
+  elseif type == 4
+      signal = rawofdm;
   elseif type == 0
       signal = seq;
   end
